@@ -1,14 +1,20 @@
 # Cartograph
 
-The product decisions behind this build, written before it starts, with the reasoning attached. The reasoning matters more than the decision — you'll hit forks this doesn't cover, and you'll need to know which way the thinking was leaning.
+The product decisions behind this build, written before it starts, with the
+reasoning attached. The reasoning matters more than the decision — you'll hit
+forks this doesn't cover, and you'll need to know which way the thinking was
+leaning.
 
-Read the part you need before you build something. Don't read it all at once, and don't paste it into a prompt.
+Read the part you need before you build something. Don't read it all at once,
+and don't paste it into a prompt.
 
 ## What it is
 
-Sign in with GitHub, paste a public TypeScript or JavaScript repository URL, and get a map of it. Folders as boxes, imports as lines between them. Open a folder into its files. Select a file and see what it imports, what imports it, and what
-breaks two levels out if it changes. Ask for an explanation and get a paragraph
-written from that file and its real neighbours.
+Sign in with GitHub, paste a public TypeScript or JavaScript repository URL,
+and get a map of it. Folders as boxes, imports as lines between them. Open a
+folder into its files. Select a file and see what it imports, what imports it,
+and what breaks two levels out if it changes. Ask for an explanation and get a
+paragraph written from that file and its real neighbours.
 
 Then a panel where you can ask the repository a question and watch it look the
 answer up.
@@ -16,15 +22,15 @@ answer up.
 ## The problem
 
 Codebases now routinely contain code nobody on the team has read. An agent wrote
-it, someone confirmed it worked, it shipped. That is a reasonable way to work and
-it is not going to stop — but it accumulates structure nobody chose. Files that
-import through three layers of re-exports. A utility forty files depend on. A
-module nothing has referenced in months.
+it, someone confirmed it worked, it shipped. That is a reasonable way to work
+and it is not going to stop — but it accumulates structure nobody chose.
+Files that import through three layers of re-exports. A utility forty files
+depend on. A module nothing has referenced in months.
 
 The questions that follow are structural. What is this file, what depends on it,
-what breaks if it changes. Answering them today means reading imports one file at
-a time and holding the results in working memory, which stops working at around
-thirty files and stops being attempted at all somewhere past a hundred.
+what breaks if it changes. Answering them today means reading imports one file
+at a time and holding the results in working memory, which stops working at
+around thirty files and stops being attempted at all somewhere past a hundred.
 
 ## Who it's for
 
@@ -139,8 +145,8 @@ If it can't run standalone, the layering is wrong.
 
 **Framework knowledge is an adapter, not a branch.** Knowing that a file in a
 particular position is a page is Next.js knowledge and belongs in an adapter. An
-`if (framework === ...)` inside parsing code means the interface built to prevent
-exactly that has failed.
+`if (framework === ...)` inside parsing code means the interface built to
+prevent exactly that has failed.
 
 **Graph calculations are pure functions** over a list of files and a list of
 edges. No data fetching inside them, nothing to mock in order to check them.
@@ -169,9 +175,9 @@ That's what makes the cache verifiable rather than assumed.
 
 ## The interface
 
-A dense developer tool, not a dashboard. Small type, tight spacing, monospace for
-anything that is a file path. Someone using this is scanning a lot of names at
-once, and the layout should assume that rather than fighting it.
+A dense developer tool, not a dashboard. Small type, tight spacing, monospace
+for anything that is a file path. Someone using this is scanning a lot of names
+at once, and the layout should assume that rather than fighting it.
 
 **Colour carries meaning or it isn't there.** Two things earn colour. Direction:
 what flows *into* a file and what flows *out* of it are different colours,
@@ -197,9 +203,9 @@ over data the browser already holds, it appears immediately — no spinner, no
 network request. Putting a spinner in front of a calculation teaches people to
 distrust the fast paths, which are most of them.
 
-**The shell gets built once.** Where the panels sit, and what each one is for, is
-settled in an early phase. Later phases add to those panels; they don't rearrange
-them. Specific placement lives in the phase specs.
+**The shell gets built once.** Where the panels sit, and what each one is for,
+is settled in an early phase. Later phases add to those panels; they don't
+rearrange them. Specific placement lives in the phase specs.
 
 ## Where this is likely to go wrong
 
@@ -208,9 +214,9 @@ something legible, and the threshold has to be solved for rather than guessed.
 Expect at least one wrong answer here before a right one.
 
 **Import resolution.** Path aliases, index files, re-exports. The risk isn't
-failure — it's _silent_ failure. A repository built on barrel files loses most of
-its edges and still renders a clean, confident, wrong picture. This is the one
-place loud reporting wins over a tidy interface.
+failure — it's _silent_ failure. A repository built on barrel files loses most
+of its edges and still renders a clean, confident, wrong picture. This is the
+one place loud reporting wins over a tidy interface.
 
 **Measuring whether the AI output is any good.** Reading a few outputs and
 judging them fine is not measurement. The requirement is that answer quality

@@ -5,7 +5,7 @@ import {
   ReactFlowProvider,
   getViewportForBounds,
   useReactFlow,
-  useStore,
+  useViewportStore,
   type Edge as FlowEdge,
   type NodeTypes,
 } from "@xyflow/react";
@@ -147,8 +147,8 @@ function MapCanvas({
   // new value the boxes are already the new ones, never the state before.
   const refitted = useRef(refit);
   const { getZoom, setViewport } = useReactFlow();
-  const width = useStore((s) => s.width);
-  const height = useStore((s) => s.height);
+  const width = useViewportStore((s) => s.width);
+  const height = useViewportStore((s) => s.height);
   useEffect(() => {
     if (refitted.current === refit) return;
     refitted.current = refit;

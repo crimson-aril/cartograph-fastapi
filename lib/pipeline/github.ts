@@ -142,7 +142,7 @@ async function withTimeout<T>(what: string, ms: number, run: () => Promise<T>): 
 async function* chunks(body: ReadableStream<Uint8Array>): AsyncGenerator<Uint8Array> {
   const reader = body.getReader();
   try {
-    for (;;) {
+    for (; ;) {
       const { done, value } = await reader.read();
       if (done) return;
       yield value;

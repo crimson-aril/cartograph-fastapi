@@ -70,6 +70,8 @@ export function parseSelection({ root, walk }: Selection): ParseResult {
 
   const resolver = createResolver({
     root,
+    existingPaths: walk.existingPaths,
+    configs: walk.configs,
     nodes: new Set(parsed.map((entry) => entry.candidate.path)),
     skipped: new Map(skipped.map((file) => [file.path, file])),
     excludedDirectories: walk.excludedDirectories,

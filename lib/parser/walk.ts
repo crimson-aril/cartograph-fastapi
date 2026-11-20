@@ -29,6 +29,10 @@ export type WalkResult = {
   candidates: CandidateFile[];
   skipped: SkippedFile[];
   excludedDirectories: ExcludedDirectory[];
+  /** Existing repository paths collected during the walk. */
+  existingPaths: Set<string>;
+  /** The preferred TypeScript or JavaScript config found in each directory. */
+  configs: Map<string, string>;
   /** Every code file seen, parsed or skipped. */
   found: number;
   /** Package names declared by package.json files inside the repository. */
@@ -83,6 +87,8 @@ export function walkRepository(root: string): WalkResult {
     candidates: [],
     skipped: [],
     excludedDirectories: [],
+    existingPaths: new Set(),
+    configs: new Map(),
     found: 0,
     workspacePackages: new Set(),
     projects: [],
@@ -119,6 +125,8 @@ export function walkRepository(root: string): WalkResult {
       const relativePath = toPosix(path.relative(root, absolutePath));
 
       if (entry.isDirectory()) {
+        result.existingPaths.add(absolutePath);
+        recordConfig(absoluteDir, absolutePath, entry.name, result.configs);
         const reason = genericExclusion(entry.name) ?? project.adapter.excludeDirectory(within(project, relativePath));
         if (reason) {
           result.excludedDirectories.push({ path: relativePath, reason });
@@ -131,6 +139,10 @@ export function walkRepository(root: string): WalkResult {
       if (entry.isSymbolicLink()) {
         // Following links can leave the repository or loop; neither is walked.
         const target = safeStat(absolutePath);
+        if (target !== "missing") {
+          result.existingPaths.add(absolutePath);
+          recordConfig(absoluteDir, absolutePath, entry.name, result.configs);
+        }
         if (target === "directory") {
           result.excludedDirectories.push({ path: relativePath, reason: "symbolic link" });
         } else if (isCodeFile(entry.name)) {
@@ -141,7 +153,10 @@ export function walkRepository(root: string): WalkResult {
         continue;
       }
 
-      if (!entry.isFile() || !isCodeFile(entry.name)) continue;
+      if (!entry.isFile()) continue;
+      result.existingPaths.add(absolutePath);
+      recordConfig(absoluteDir, absolutePath, entry.name, result.configs);
+      if (!isCodeFile(entry.name)) continue;
       result.found++;
       result.projectOf.set(relativePath, project.path);
 
@@ -158,6 +173,12 @@ export function walkRepository(root: string): WalkResult {
 
   visit(root, null);
   return result;
+}
+
+function recordConfig(directory: string, absolutePath: string, name: string, configs: Map<string, string>): void {
+  if (name === "tsconfig.json" || (name === "jsconfig.json" && !configs.has(directory))) {
+    configs.set(directory, absolutePath);
+  }
 }
 
 function safeStat(absolutePath: string): "directory" | "file" | "missing" {

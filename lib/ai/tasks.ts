@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { isModelRole, MODEL_ROLES, type ModelRole } from "../roles.ts";
 import { traceable } from "langsmith/traceable";
-import { ai, MODELS, traceConfig } from "./client.ts";
+import { cacheModelCandidates, completeChat, modelForTask, traceConfig } from "./client.ts";
 import {
   CLASSIFY_SYSTEM,
   classifyMessage,
@@ -41,27 +41,25 @@ export function cacheKey(task: Task, model: string, input: unknown): string {
 }
 
 export async function explainFile(input: FileInput, deps: { cache: Cache; source: SourceOf }): Promise<Explanation> {
-  const model = MODELS.explain;
+  const model = modelForTask("explain");
   const run = traceable(async (question: FileInput): Promise<Explanation> => {
-    const key = cacheKey("explain-file", model, question);
-    const hit = await deps.cache.read(key);
-    if (hit !== null) return { body: hit, model, cached: true };
-    const body = await complete(model, EXPLAIN_FILE_SYSTEM, explainFileMessage(question, capped(await deps.source())));
-    await deps.cache.write({ key, task: "explain-file", model, body });
-    return { body, model, cached: false };
+    const hit = await readCached(deps.cache, "explain-file", model, question);
+    if (hit) return { ...hit, cached: true };
+    const generated = await complete(model, EXPLAIN_FILE_SYSTEM, explainFileMessage(question, capped(await deps.source())));
+    await deps.cache.write({ key: cacheKey("explain-file", generated.model, question), task: "explain-file", ...generated });
+    return { ...generated, cached: false };
   }, traceConfig("explain-file"));
   return run(input);
 }
 
 export async function explainFolder(input: FolderInput, deps: { cache: Cache }): Promise<Explanation> {
-  const model = MODELS.explain;
+  const model = modelForTask("explain");
   const run = traceable(async (question: FolderInput): Promise<Explanation> => {
-    const key = cacheKey("explain-folder", model, question);
-    const hit = await deps.cache.read(key);
-    if (hit !== null) return { body: hit, model, cached: true };
-    const body = await complete(model, EXPLAIN_FOLDER_SYSTEM, explainFolderMessage(question));
-    await deps.cache.write({ key, task: "explain-folder", model, body });
-    return { body, model, cached: false };
+    const hit = await readCached(deps.cache, "explain-folder", model, question);
+    if (hit) return { ...hit, cached: true };
+    const generated = await complete(model, EXPLAIN_FOLDER_SYSTEM, explainFolderMessage(question));
+    await deps.cache.write({ key: cacheKey("explain-folder", generated.model, question), task: "explain-folder", ...generated });
+    return { ...generated, cached: false };
   }, traceConfig("explain-folder"));
   return run(input);
 }
@@ -71,14 +69,12 @@ export async function explainFolder(input: FolderInput, deps: { cache: Cache }):
 const NONE = "none";
 
 export async function classifyFile(input: ClassifyInput, deps: { cache: Cache; source: SourceOf }): Promise<{ role: ModelRole | null; cached: boolean }> {
-  const model = MODELS.classify;
+  const model = modelForTask("classify");
   const run = traceable(async (question: ClassifyInput): Promise<{ role: ModelRole | null; cached: boolean }> => {
-    const key = cacheKey("classify-file", model, question);
-    const hit = await deps.cache.read(key);
-    if (hit !== null) return { role: parseRole(hit), cached: true };
+    const hit = await readCached(deps.cache, "classify-file", model, question);
+    if (hit) return { role: parseRole(hit.body), cached: true };
     const excerpt = (await deps.source()).split("\n").slice(0, EXCERPT_LINES).join("\n");
-    const response = await ai().chat.completions.create({
-      model,
+    const generated = await completeChat(model, {
       messages: [
         { role: "system", content: CLASSIFY_SYSTEM },
         { role: "user", content: classifyMessage(question, excerpt) },
@@ -98,10 +94,15 @@ export async function classifyFile(input: ClassifyInput, deps: { cache: Cache; s
         },
       },
     });
-    const answer = readRole(response.choices[0]?.message.content ?? null);
+    const answer = readRole(generated.response.choices[0]?.message.content ?? null);
     // Parsed before caching, so a refused answer is never stored and served.
     const role = parseRole(answer);
-    await deps.cache.write({ key, task: "classify-file", model, body: answer });
+    await deps.cache.write({
+      key: cacheKey("classify-file", generated.model, question),
+      task: "classify-file",
+      model: generated.model,
+      body: answer,
+    });
     return { role, cached: false };
   }, traceConfig("classify-file"));
   return run(input);
@@ -123,9 +124,8 @@ function readRole(content: string | null): string {
   return role;
 }
 
-async function complete(model: string, system: string, user: string): Promise<string> {
-  const response = await ai().chat.completions.create({
-    model,
+async function complete(model: string, system: string, user: string): Promise<{ body: string; model: string }> {
+  const generated = await completeChat(model, {
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
@@ -133,9 +133,22 @@ async function complete(model: string, system: string, user: string): Promise<st
     reasoning_effort: "low",
     verbosity: "low",
   });
-  const body = response.choices[0]?.message.content?.trim();
-  if (!body) throw new Error(`${model} returned an empty answer (finish reason: ${response.choices[0]?.finish_reason ?? "none"})`);
-  return body;
+  const body = generated.response.choices[0]?.message.content?.trim();
+  if (!body) throw new Error(`${generated.model} returned an empty answer (finish reason: ${generated.response.choices[0]?.finish_reason ?? "none"})`);
+  return { body, model: generated.model };
+}
+
+async function readCached(
+  cache: Cache,
+  task: Task,
+  currentModel: string,
+  input: unknown,
+): Promise<{ body: string; model: string } | null> {
+  for (const model of cacheModelCandidates(currentModel)) {
+    const body = await cache.read(cacheKey(task, model, input));
+    if (body !== null) return { body, model };
+  }
+  return null;
 }
 
 function capped(source: string): string {

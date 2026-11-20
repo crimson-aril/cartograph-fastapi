@@ -20,6 +20,13 @@
 # production
 /build
 
+# Python
+/backend/.venv/
+/backend/.venv-wsl/
+/backend/__pycache__/
+__pycache__/
+*.py[cod]
+
 # misc
 .DS_Store
 *.pem
@@ -39,3 +46,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local password files
+passwords.txt
+
+# supabase temp files
+supabase/.temp

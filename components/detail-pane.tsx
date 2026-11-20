@@ -608,7 +608,7 @@ function GroupStructure({ files, fan }: { files: string[]; fan: { fanIn: number;
         <h3 className="px-3 pb-0.5 text-[11px]">Kinds of file inside</h3>
         <ul>
           {kinds.map(({ category, count }) => (
-            <li key={category} className="flex h-[22px] items-center gap-2 px-3 text-[11px]">
+            <li key={category} className="flex h-5.5 items-center gap-2 px-3 text-[11px]">
               <CategorySwatch category={category} />
               <span className="flex-1 font-mono">{categoryLabel(category)}</span>
               <span className="text-fg-muted tabular-nums">{count}</span>
@@ -632,7 +632,7 @@ function InlinePath({ path, paths }: { path: string; paths: PathActions }) {
       onClick={() => paths.onReveal(path)}
       onMouseEnter={() => paths.onHover({ kind: "file", path })}
       onMouseLeave={() => paths.onHover(null)}
-      className={`rounded-[2px] px-0.5 text-left font-mono text-[11px] break-all text-accent hover:underline ${
+      className={`rounded-xs px-0.5 text-left font-mono text-[11px] break-all text-accent hover:underline ${
         paths.isHovered(path) ? "bg-accent/15" : ""
       }`}
     >
@@ -655,7 +655,7 @@ function PathRow({ path, paths, trailing }: { path: string; paths: PathActions; 
         onClick={() => paths.onReveal(path)}
         onMouseEnter={() => paths.onHover({ kind: "file", path })}
         onMouseLeave={() => paths.onHover(null)}
-        className={`flex h-[22px] w-full min-w-0 items-center gap-2 px-3 text-left text-[11px] ${
+        className={`flex h-5.5 w-full min-w-0 items-center gap-2 px-3 text-left text-[11px] ${
           hovered ? "bg-accent/15 shadow-[inset_2px_0_0_var(--accent)]" : "hover:bg-raised"
         }`}
       >

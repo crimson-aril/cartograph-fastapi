@@ -44,7 +44,7 @@ export function RouteTable({
       ) : (
         <table className="w-full border-collapse">
           <thead className="sticky top-0 bg-surface">
-            <tr className="h-[22px] border-b border-line text-left text-[10px] text-fg-muted">
+            <tr className="h-5.5 border-b border-line text-left text-[10px] text-fg-muted">
               <th className="w-16 px-3 font-normal">Method</th>
               <th className="px-3 font-normal">Pattern</th>
               <th className="px-3 font-normal">Declared in</th>
@@ -60,7 +60,7 @@ export function RouteTable({
                   onClick={() => onReveal(r.file)}
                   onMouseEnter={() => onHover({ kind: "file", path: r.file })}
                   onMouseLeave={() => onHover(null)}
-                  className={`h-[22px] cursor-pointer font-mono ${
+                  className={`h-5.5 cursor-pointer font-mono ${
                     selected ? "bg-accent/15 shadow-[inset_2px_0_0_var(--accent)]" : hovered ? "bg-raised" : "hover:bg-raised"
                   }`}
                 >

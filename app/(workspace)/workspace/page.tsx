@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { connection } from "next/server";
 import { AnalysisRow, type RowData } from "@/components/progress/analysis-row";
+import { ResumeSubmission } from "@/components/landing/resume-submission";
 import { StateMark } from "@/components/state-mark";
 import { SubmitForm } from "@/components/submit-form";
 import { isStale, type Status } from "@/lib/pipeline/stages";
@@ -11,8 +12,17 @@ const LIST_LIMIT = 100;
 type Tally = Status | "stale";
 const TALLY_ORDER: Tally[] = ["running", "queued", "stale", "complete", "failed"];
 
-export default async function DashboardPage() {
-  const { sessionClaims } = await auth();
+export default async function WorkspacePage({ searchParams }: PageProps<"/workspace">) {
+  const { sessionClaims } = await auth.protect();
+  const query = await searchParams;
+  const repository = typeof query.repository === "string" ? query.repository : undefined;
+  if (repository) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <ResumeSubmission repository={repository} />
+      </div>
+    );
+  }
 
   // Read off the token, never fetched from Clerk. If the claim is missing the
   // session token hasn't been customised yet, and that should be obvious.

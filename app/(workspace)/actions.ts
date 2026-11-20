@@ -3,11 +3,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { PipelineError } from "@/lib/pipeline/github";
+import { parseRepositoryUrl, PipelineError } from "@/lib/pipeline/github";
 import { AlreadyRunningError, claimAnalysis, continueRun, type ClaimedRun } from "@/lib/pipeline/run";
 import { submitRepository } from "@/lib/pipeline/submit";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { submitToFastApi } from "@/lib/fastapi";
+import { startUrl } from "@/lib/workspace-navigation";
 
 export type FormState = { error: string | null };
 
@@ -15,15 +17,30 @@ export type FormState = { error: string | null };
 // already has one for the repository, goes to it without running anything.
 // The organization comes off the session token, never from the form.
 export async function submitAnalysis(_previous: FormState, form: FormData): Promise<FormState> {
-  const { orgId } = await auth();
-  if (!orgId) return { error: "No active organization" };
   const url = form.get("url");
   if (typeof url !== "string" || !url.trim()) return { error: "Paste a GitHub repository URL" };
+  const repositoryUrl = url.trim();
+
+  try {
+    parseRepositoryUrl(repositoryUrl);
+  } catch (error) {
+    if (error instanceof PipelineError) return { error: error.message };
+    throw error;
+  }
+
+  const { orgId, userId, getToken } = await auth();
+  if (!userId) {
+    redirect(`/sign-in?redirect_url=${encodeURIComponent(startUrl(repositoryUrl))}`);
+  }
+  if (!orgId) redirect(startUrl(repositoryUrl));
+
+  const primarySubmission = await submitToFastApi(repositoryUrl, await getToken());
+  if (primarySubmission) redirect(`/analyses/${primarySubmission.analysisId}`);
 
   const admin = createAdminSupabase();
   let analysisId: string;
   try {
-    const submission = await submitRepository(admin, orgId, url);
+    const submission = await submitRepository(admin, orgId, repositoryUrl);
     analysisId = submission.analysisId;
     if (submission.created) start(await claimAnalysis(admin, analysisId));
   } catch (error) {
@@ -35,6 +52,7 @@ export async function submitAnalysis(_previous: FormState, form: FormData): Prom
 
 // Re-running is only ever this: a deliberate act from the analysis itself.
 export async function rerunAnalysis(analysisId: string): Promise<FormState> {
+  await auth.protect();
   // Visibility is the policy's call: another organization's analysis isn't
   // there to re-run. The writer below bypasses policies, so this read comes first.
   const supabase = await createServerSupabase();

@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import path from "node:path";
 import { ts } from "ts-morph";
@@ -23,6 +23,9 @@ type LoadedConfig = {
 
 export type RepositoryIndex = {
   root: string;
+  /** Existing repository paths and config files collected during the walk. */
+  existingPaths: ReadonlySet<string>;
+  configs: ReadonlyMap<string, string>;
   /** Repository-relative paths that became nodes. */
   nodes: Set<string>;
   skipped: Map<string, SkippedFile>;
@@ -35,7 +38,6 @@ export type Resolver = {
   configs(): ConfigReport[];
 };
 
-const CONFIG_NAMES = ["tsconfig.json", "jsconfig.json"];
 // "No inputs were found" is about the config's include globs, which the parser
 // doesn't use; every other diagnostic is reported.
 const IGNORED_CONFIG_CODES = new Set([18003]);
@@ -54,14 +56,7 @@ export function createResolver(index: RepositoryIndex): Resolver {
   const findConfig = (dir: string): string | null => {
     const cached = nearestConfig.get(dir);
     if (cached !== undefined) return cached;
-    let found: string | null = null;
-    for (const name of CONFIG_NAMES) {
-      const candidate = path.join(dir, name);
-      if (existsSync(candidate)) {
-        found = candidate;
-        break;
-      }
-    }
+    let found = index.configs.get(dir) ?? null;
     if (!found && dir !== root) {
       const parent = path.dirname(dir);
       // Never read a config from outside the repository: it isn't part of what was handed over.
@@ -197,7 +192,8 @@ export function createResolver(index: RepositoryIndex): Resolver {
       const absolute = path.resolve(config.baseUrl, bare);
       const existing = classifyExistingPath(absolute);
       if (existing) return existing;
-      if (isInside(root, absolute) && existsSync(path.resolve(config.baseUrl, bare.split("/")[0]))) {
+      const firstSegment = path.resolve(config.baseUrl, bare.split("/")[0]);
+      if (isInside(root, absolute) && index.existingPaths.has(firstSegment)) {
         return {
           status: "unresolved",
           reason: "file-not-found",

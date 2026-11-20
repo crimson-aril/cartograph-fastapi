@@ -1,0 +1,27 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Cartograph API built with FastAPI"
+readme = "README.md"
+authors = [
+    { name = "crimson-aril", email = "rumman2454@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "clerk-backend-api>=7.1.0",
+    "fastapi[standard]>=0.165.0",
+    "langsmith>=0.15.0",
+    "openai>=3.55.1",
+    "python-dotenv>=1.2.4",
+    "supabase>=2.34.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = false
+
+[tool.fastapi]
+entrypoint = "src.main:app"

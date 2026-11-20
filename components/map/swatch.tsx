@@ -11,7 +11,7 @@ export function CategorySwatch({ category }: { category: string }) {
   return (
     <span
       aria-hidden="true"
-      className="size-[8px] shrink-0 rounded-[2px]"
+      className="size-2 shrink-0 rounded-xs"
       style={{ background: CATEGORY_COLOUR[category] ?? "var(--fg-muted)" }}
     />
   );

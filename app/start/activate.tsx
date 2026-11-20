@@ -4,8 +4,9 @@ import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { resolveOrganization } from "./actions";
+import { workspaceUrl } from "@/lib/workspace-navigation";
 
-export function Activate() {
+export function Activate({ repository }: { repository?: string }) {
   const { setActive } = useClerk();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -17,9 +18,9 @@ export function Activate() {
     started.current = true;
     resolveOrganization()
       .then((organization) => setActive({ organization }))
-      .then(() => router.replace("/"))
+      .then(() => router.replace(workspaceUrl(repository)))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
-  }, [setActive, router]);
+  }, [setActive, router, repository]);
 
   return error ? (
     <p className="text-xs text-fg">Couldn&apos;t set up an organization: {error}</p>

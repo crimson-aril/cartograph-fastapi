@@ -1,0 +1,1 @@
+"""Cartograph FastAPI application package."""

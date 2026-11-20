@@ -7,8 +7,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 // (e.g. accepted an invitation) or gets one created for them. After this,
 // everything reads the organization off the session token.
 export async function resolveOrganization(): Promise<string> {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not signed in");
+  const { userId } = await auth.protect();
 
   const clerk = await clerkClient();
   const memberships = await clerk.users.getOrganizationMembershipList({ userId, limit: 1 });
